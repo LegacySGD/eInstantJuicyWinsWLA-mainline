@@ -1,0 +1,158 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Reveal</title>
+</head>
+<body>
+<table cellpadding="0" cellspacing="0" border="0" summary="">
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td><strong>SoftwareId:</strong></td>
+				<td>@SoftwareIdToken@</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td><strong>Price point:</strong></td>
+				<td>@PricePointToken@</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td><strong>Spot:</strong></td>
+				<td>@SpotToken@</td>
+				</tr>
+			</table>
+		</td>
+	</tr>	
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr id='divisionList'>
+				<td></td>
+				<td><strong>Division:</strong></td>
+				</tr>
+			</table>
+		</td>
+	</tr>	
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>				
+				<td id="currentpage"></td><td id="totalpages"></td>
+				</tr>
+				<tr>
+				<td></td>
+				<td id="prevPage"></td>
+				<td id="nextPage"></td>
+				<td>Jump to Page <input type="text" id="textPage" size="1" style="text-align:right"/>&nbsp;<input type="button" value="Go" onclick="jumpToPage()"/></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td>Input Scenario Data</td>
+				<td><input type="text" id="textSearch" size="60" />&nbsp;<input type="button" value="Search" onclick="searchToPage()"/></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table border="1" cellpadding="4" cellspacing="2">
+				<tr>		
+				<td>Index</td>
+				<td>Division</td>
+				<td>Scenario data</td>
+				</tr>@ScenarioDatasToken@
+			</table>
+		</td>
+	</tr>
+</table>
+<script language="javascript">
+	var divisionsTotal = @DivisionsTotalToken@;
+	var pagesTotal = @PagesTotalToken@;
+	var currentDivision = getUrlParam('revealdivision');
+	var currentPage = getUrlParam('revealpage');	
+	var divList = document.getElementById("divisionList");
+	for(var i = 1; i <= divisionsTotal; i++ ) {
+		var cell = divList.insertCell();
+		if ( currentDivision == i ) {
+			cell.innerText = '[ ' + currentDivision + ' ]';
+			cell.style.fontWeight = 'bold';			
+		} else {
+			var aTag = document.createElement("a");
+			aTag.href = window.location.href.replace('revealdivision=' + currentDivision, 'revealdivision=' + i);
+			aTag.href = aTag.href.replace('revealpage=' + currentPage, 'revealpage=1');
+			aTag.href = removeQuery(aTag.href);
+			aTag.innerText = ' ' + i +' ';
+			cell.appendChild(aTag);			
+		}		
+	}	
+	var prevPage = document.getElementById("prevPage");
+	pageATagGeneration(prevPage, 1, '<< Prev Page', parseInt(currentPage) - 1);	
+	var nextPage = document.getElementById("nextPage");
+	pageATagGeneration(nextPage, pagesTotal, 'Next Page >>', parseInt(currentPage) + 1);
+	
+	var pagenode = document.getElementById("currentpage");
+	pagenode.innerText = 'Page ' + currentPage + ' ';
+	pagenode.style.fontWeight = 'bold';	
+	
+	var totalpagesnode = document.getElementById("totalpages");
+	totalpagesnode.innerText = 'of ' + pagesTotal + ' total pages.';
+	
+	function pageATagGeneration(pagenode, specialvalue, text, number) {
+		if( parseInt(currentPage) == specialvalue ) {
+			pagenode.innerText = text;
+		} else {
+			var aTag = document.createElement("a");
+			aTag.href = window.location.href.replace('revealpage=' + currentPage, 'revealpage=' + number);
+			aTag.href = removeQuery(aTag.href);
+			aTag.innerText = text;
+			pagenode.appendChild(aTag);
+		}
+	}	
+	function jumpToPage() {
+		var page = parseInt(document.getElementById("textPage").value);
+		page = (isNaN(page) || page > pagesTotal || page < 0) ? 1 : page;
+		var pageUrl = location.href;
+		pageUrl=pageUrl.replace('revealpage=' + getUrlParam('revealpage'), 'revealpage=' + page );
+		location.href = removeQuery(pageUrl);
+	}
+	function searchToPage() {
+		var queryString = document.getElementById("textSearch").value;
+		if( location.href.indexOf('&query=') !== -1 ) {
+			location.href=location.href.replace('query=' + getUrlParam('query'), 'query=' + encodeURIComponent(queryString) )	
+		} else {
+			location.href=location.href + '&query=' + encodeURIComponent(queryString);
+		}		
+	}
+	function getUrlParam(name) {
+		var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)"); 
+		var r = window.location.search.substr(1).match(reg);
+		return (r != null) ? r[2] : null;
+	}
+	function removeQuery(urlString) {
+		return urlString.replace('&query=' + getUrlParam('query'), '');
+	}
+</script>
+</body>
+</html>

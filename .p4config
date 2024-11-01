@@ -1,0 +1,4 @@
+P4CLIENT=CloneScript
+P4USER=codebldr
+P4HOST=sf-build102
+P4PORT=sf-ops08.corp.wagerworks.com:1666

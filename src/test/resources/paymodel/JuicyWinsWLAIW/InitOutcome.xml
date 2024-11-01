@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Outcome>
+	<OutcomeDetail>
+		<TransactionId>123456789</TransactionId>
+		<OutcomeId>123456789</OutcomeId>
+		<OutcomeNumber>0</OutcomeNumber>
+		<RngTxnId>123</RngTxnId>
+		<Settled>0</Settled>
+		<Pending>0</Pending>
+		<Payout>0</Payout>
+		<Stage>Wager</Stage>
+		<ExecutionModel>Wager_Buy</ExecutionModel>
+		<NextStage>Wager</NextStage>
+	</OutcomeDetail>
+	<ResultData>
+		<JSONOutcome name="ODERevealData">{'revealData':null}</JSONOutcome>
+    </ResultData>
+</Outcome>

@@ -1,0 +1,101 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Force</title>
+</head>
+<body>
+<form method="get">
+<table cellpadding="0" cellspacing="0" border="0" summary="">
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td><strong>Price point:</strong></td>
+				<td><select name="pricepoint" title="Pricepoint.Number" id="pricepoint" onChange="selectDivisions()"></select></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td><strong>Spot:</strong></td>
+				<td><select name="spot" title="Spot.Number" id="spot"  onChange="selectDivisions()"></select></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	
+	<tr><td>--------------------------------------</td></tr>
+	<tr>
+		<td><label><input name="forceodetype" type="radio" value="1"  checked="checked" /><strong>Choose the Division level to force:</strong></label></td>
+	</tr>
+	<tr>
+		<td>
+			<table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+				<td></td>
+				<td>Division:</td>
+				<td><select name="division" title="Division.Number" id="division"></select></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td><label><input name="forceodetype" type="radio" value="2" /><strong>Choose the Index number to force:</strong></label></td>
+	</tr>
+	<tr>
+	<td>
+	<table border="0" cellpadding="4" cellspacing="0">
+	<tr>
+	<td></td>
+	<td>Index:</td>
+	<td><input type="text" name="index"></td>
+	<td><a target="_blank" href="../force.action" id="reveal" onclick="pendParams()">View all the Reveal</a></td>
+	</tr>
+	</table>
+	</td>
+	</tr>
+	<tr><td>
+</td></tr>
+<tr>
+<td align="left">
+<table cellpadding="4" cellspacing="0" border="0" summary="">
+<tr>
+<td><input type="submit"></td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</form>
+<script language="javascript">
+	var pricepointList = '@PricepointListToken@'.split(',');
+	for (var i=0; i < pricepointList.length; i++) {
+		document.getElementById("pricepoint").options[i] = new Option(pricepointList[i], pricepointList[i]);
+	}	
+	var spotList = '@SpotListToken@'.split(':');
+	for (var i=0; i < spotList.length; i++) {
+		document.getElementById("spot").options[i] = new Option(spotList[i], spotList[i]);
+	}	
+	var divisionMap = {@DivisionListToken@};	
+	selectDivisions();
+	function selectDivisions(){
+		var divisionValue = divisionMap[document.getElementById("pricepoint").value + '_' + document.getElementById("spot").value];
+		document.getElementById("division").options = null;
+		for (var i=1; i <= divisionValue; i++) {
+			document.getElementById("division").options[i-1] = new Option(i, i);
+		}
+		document.getElementById("division").length = divisionValue;
+	}
+    function pendParams(){
+		var pricepointValue = document.getElementById("pricepoint").value;
+		var spotValue = document.getElementById("spot").value;
+		document.getElementById("reveal").href = window.location.href.replace(window.location.search, '') + '?pricepoint=' + pricepointValue + '&spot=' + spotValue + '&forceodetype=0&revealdivision=1&revealpage=1';
+	}	
+</script>
+</body>
+</html>

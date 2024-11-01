@@ -1,0 +1,394 @@
+<Paytable>
+	<PaytableData>
+		<!-- @validation:ignore -->
+		<PaytableVariation name="Variation">
+			<Variation>
+				<SoftwareId>300-2394-099</SoftwareId>
+				<PaytableStatistics type="Lottery" description="Juicy Wins WLA" name="Juicy Wins WLA" maxRTP="67.41" minRTP="67.41" />
+				<BetConfiguration name="ODEWager">
+					<PlayedCreditsPerSelection>1</PlayedCreditsPerSelection>
+					<PaidCreditsPerSelection>1</PaidCreditsPerSelection>
+				</BetConfiguration>
+				<ExecutionModelMapping>
+					<ExecutionModel name="Wager_Buy">
+						<Data type="Wager_Buy.ODEInputVerifier.Wager" name="Wager_Buy.ODEInputVerifier.Wager" />
+						<Data type="Wager_Buy.ODEInputVerifier.JSON" name="Wager_Buy.ODEInputVerifier.JSON" />
+						<Data type="Wager_Buy.StaticTriggerProcessor" name="Wager_Buy.StaticTriggerProcessor" />
+						<Data type="Wager_Buy.StaticTriggerProcessor.WagerMode" name="Wager_Buy.StaticTriggerProcessor.WagerMode" />
+						<Data type="Wager_Buy.JackpotProcessor" name="JackpotProcessor"/>
+						<Data type="Wager_Buy.LoopProcessor" name="Wager_Buy.LoopProcessor" />
+						<Data type="Wager_Buy.StageProcessor" name="Wager_Buy.StageProcessor" />
+						<Data type="Wager_Buy.AdvancedTransactionProcessor" name="Wager_Buy.AdvancedTransactionProcessor" />
+					</ExecutionModel>
+					<ExecutionModel name="Wager_Try">
+						<Data type="Wager_Try.ODEInputVerifier.Wager" name="Wager_Try.ODEInputVerifier.Wager" />
+						<Data type="Wager_Try.ODEInputVerifier.JSON" name="Wager_Try.ODEInputVerifier.JSON" />
+						<Data type="Wager_Try.OutcomeDeepCopyProcessor.ODEOutcome" name="Wager_Try.OutcomeDeepCopyProcessor.ODEOutcome" />
+						<Data type="Wager_Try.ODEPrizeProcessor" name="Wager_Try.ODEPrizeProcessor" />
+						<Data type="Wager_Try.ODENonCashPrizeProcessor" name="Wager_Try.ODENonCashPrizeProcessor" />
+						<Data type="Wager_Try.LoopProcessor" name="Wager_Try.LoopProcessor" />
+						<Data type="Wager_Try.StaticTriggerProcessor" name="Wager_Try.StaticTriggerProcessor" />
+						<Data type="Wager_Try.StaticTriggerProcessor.WagerMode" name="Wager_Try.StaticTriggerProcessor.WagerMode" />
+						<Data type="Wager_Try.StageProcessor" name="Wager_Try.StageProcessor" />
+						<Data type="Wager_Try.AdvancedTransactionProcessor" name="Wager_Try.AdvancedTransactionProcessor" />
+					</ExecutionModel>
+					<ExecutionModel name="Scenario">
+						<Data type="Scenario.OutcomeDeepCopyProcessor.ODEOutcome" name="Scenario.OutcomeDeepCopyProcessor.ODEOutcome" />
+						<Data type="Scenario.JackpotPrizeProcessor" name="JackpotPrize.ODEPrizeProcessor" />
+						<Data type="JackpotTriggerProcessor" name="JackpotTriggerProcessor" />
+						<Data type="JackpotProcessor" name="JackpotProcessor"/>
+						<Data type="Scenario.ODEPrizeProcessor" name="Scenario.ODEPrizeProcessor" />
+						<Data type="Scenario.LoopProcessor" name="Scenario.LoopProcessor" />
+						<Data type="Scenario.StageProcessor" name="Scenario.StageProcessor" />
+						<Data type="Scenario.AdvancedTransactionProcessor" name="Scenario.AdvancedTransactionProcessor" />
+					</ExecutionModel>
+					<ExecutionModel name="ScenarioLoop">
+						<Data type="JackpotPrize.StageProcessor" name="JackpotPrize.StageProcessor" />
+						<Data type="JackpotPrize.AdvancedTransactionProcessor" name="JackpotPrize.AdvancedTransactionProcessor" />
+					</ExecutionModel>
+					<ExecutionModel name="Reveal">
+						<Data type="Reveal.ODEInputVerifier" name="Reveal.ODEInputVerifier" />
+						<Data type="Reveal.ODEInputVerifier.RevealData" name="Reveal.ODEInputVerifier.RevealData" />
+						<Data type="Reveal.StageProcessor" name="Reveal.StageProcessor" />
+						<Data type="Reveal.AdvancedTransactionProcessor" name="Reveal.AdvancedTransactionProcessor" />
+					</ExecutionModel>
+				</ExecutionModelMapping>
+			</Variation>
+		</PaytableVariation>
+	</PaytableData>
+
+	<PaytableData>
+		<ComponentsDataMapping>
+			<!-- START EXECUTION MODEL Wager_Buy ComponentData -->
+			<ComponentData name="Wager_Buy.ODEInputVerifier.Wager">
+				<Data name="Wager_Buy.Wager" type="ODEInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Buy.ODEInputVerifier.JSON">
+				<Data name="Wager_Buy.JSON" type="ODEInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Buy.StaticTriggerProcessor">
+				<Data name="Wager_Buy.StaticTriggers" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Buy.StaticTriggerProcessor.WagerMode">
+				<Data name="Wager_Buy.WagerMode" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Buy.LoopProcessor">
+				<Data name="Wager_Buy.Loop" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Buy.StageProcessor">
+				<Data name="Wager_Buy" type="StageTriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Buy.AdvancedTransactionProcessor">
+				<Data name="Wager_Buy" type="WagerStrategyInfo" />
+			</ComponentData>
+			<!-- END EXECUTION MODEL Wager_Buy ComponentData -->
+
+			<!-- START EXECUTION MODEL Wager_Try ComponentData -->
+			<ComponentData name="Wager_Try.ODEInputVerifier.Wager">
+				<Data name="Wager_Try.Wager" type="ODEInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.ODEInputVerifier.JSON">
+				<Data name="Wager_Try.JSON" type="ODEInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.OutcomeDeepCopyProcessor.ODEOutcome">
+				<Data name="Wager_Try" type="DeepCopyInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.ODEPrizeProcessor">
+				<Data name="ODE" type="PrizeInfo" />
+				<Data name="ODE" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.ODENonCashPrizeProcessor">
+				<Data name="JackpotPrizes" type="InstantWinNonCashPrizeInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.LoopProcessor">
+				<Data name="Wager_Try.Loop" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.StaticTriggerProcessor">
+				<Data name="Wager_Try.StaticTriggers" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.StaticTriggerProcessor.WagerMode">
+				<Data name="Wager_Try.WagerMode" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.StageProcessor">
+				<Data name="Wager_Try" type="StageTriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Wager_Try.AdvancedTransactionProcessor">
+				<Data name="Wager_Try" type="WagerStrategyInfo" />
+			</ComponentData>
+			<!-- END EXECUTION MODEL Wager_Try ComponentData -->
+
+			<!-- START EXECUTION MODEL Scenario ComponentData -->
+			<ComponentData name="Scenario.OutcomeDeepCopyProcessor.ODEOutcome">
+				<Data name="Scenario" type="DeepCopyInfo" />
+			</ComponentData>
+			<ComponentData name="Scenario.ODEPrizeProcessor">
+				<Data name="ODE" type="PrizeInfo" />
+				<Data name="ODE" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Scenario.LoopProcessor">
+				<Data name="Scenario.Loop" type="TriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Scenario.StageProcessor">
+				<Data name="Scenario" type="StageTriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Scenario.AdvancedTransactionProcessor">
+				<Data name="Scenario" type="WagerStrategyInfo" />
+			</ComponentData>
+			<!-- END EXECUTION MODEL Scenario ComponentData -->
+			
+			<!-- START EXECUTION MODEL Jackpot ComponentData -->
+			<ComponentData name="JackpotPrize.ODEPrizeProcessor">
+				<Data name="Game.Jackpot" type="JackpotInfo"/>
+				<!-- <Data name="ODE" type="PrizeInfo" /> -->
+			</ComponentData>
+			<ComponentData name="JackpotPrize.StageProcessor">
+				<Data name="JackpotPrize" type="StageTriggerInfo" />
+			</ComponentData>
+			<ComponentData name="JackpotPrize.AdvancedTransactionProcessor">
+				<Data name="JackpotPrize" type="WagerStrategyInfo" />
+			</ComponentData>
+			<ComponentData name="JackpotProcessor">
+				<Data name="Game.Jackpot" type="JackpotInfo"/>
+			</ComponentData>
+			<ComponentData name="JackpotTriggerProcessor">
+				<Data name="JackpotTrigger" type="TriggerInfo" />
+			</ComponentData>
+			<!-- END EXECUTION MODEL Jackpot ComponentData -->
+
+			<!-- START EXECUTION MODEL Reveal ComponentData -->
+			<ComponentData name="Reveal.ODEInputVerifier">
+				<Data name="Reveal.Status" type="ODEInfo" />
+			</ComponentData>
+			<ComponentData name="Reveal.ODEInputVerifier.RevealData">
+				<Data name="Reveal.RevealData" type="ODEInfo" />
+			</ComponentData>
+			<ComponentData name="Reveal.StageProcessor">
+				<Data name="Reveal" type="StageTriggerInfo" />
+			</ComponentData>
+			<ComponentData name="Reveal.AdvancedTransactionProcessor">
+				<Data name="Reveal" type="WagerStrategyInfo" />
+			</ComponentData>
+			<!-- END EXECUTION MODEL Reveal ComponentData -->
+		</ComponentsDataMapping>
+	</PaytableData>
+
+	<!-- START EXECUTION MODEL Wager_Buy PaytableData -->
+	<PaytableData>
+		<ODEInfo name="Wager_Buy.Wager" verificationStrategy="wager">
+			<Wagers>
+				<Wager name="Wager1" />
+			</Wagers>
+		</ODEInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<ODEInfo name="Wager_Buy.JSON" verificationStrategy="json" />
+	</PaytableData>
+
+	<PaytableData>
+		<TriggerInfo name="Wager_Buy.StaticTriggers">
+			<Trigger name="wager" />
+		</TriggerInfo>
+	</PaytableData>
+	<PaytableData>
+		<TriggerInfo name="JackpotTrigger">
+			<Trigger name="Jackpot">
+				<Condition category="OR">
+					<Condition category="TRIGGER" value="try"/>
+					<Condition category="TRIGGER" value="buy"/>
+				</Condition>
+			</Trigger>
+		</TriggerInfo>
+	</PaytableData>
+	<PaytableData>
+		<TriggerInfo name="Wager_Buy.WagerMode">
+			<Trigger name="buy" />
+		</TriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<TriggerInfo name="Wager_Buy.Loop">
+			<Trigger name="wager" />
+		</TriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<StageTriggerInfo name="Wager_Buy">
+			<Trigger name="wager" stageConnector="WagerToScenario" />
+		</StageTriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<WagerStrategyInfo name="Wager_Buy">
+			<Trigger name="wager" wagerState="pending" payoutState="noPayout" priority="0" />
+		</WagerStrategyInfo>
+	</PaytableData>
+	<!-- END EXECUTION MODEL Wager_Buy PaytableData -->
+
+	<!-- START EXECUTION MODEL Wager_Try PaytableData -->
+	<PaytableData>
+		<ODEInfo name="Wager_Try.Wager" verificationStrategy="wager">
+			<Wagers>
+				<Wager name="Wager1" />
+			</Wagers>
+		</ODEInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<ODEInfo name="Wager_Try.JSON" verificationStrategy="json" />
+	</PaytableData>
+
+	<PaytableData>
+		<DeepCopyInfo name="Wager_Try">
+			<DeepCopy type="JSONOutcome" sourceName="ODEResponse.Encrypted" destinationName="ODEResponse" />
+		</DeepCopyInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<TriggerInfo name="Wager_Try.Loop">
+			<Trigger name="Jackpot" />
+		</TriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<TriggerInfo name="Wager_Try.StaticTriggers">
+			<Trigger name="wager" />
+		</TriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<TriggerInfo name="Wager_Try.WagerMode">
+			<Trigger name="try" />
+		</TriggerInfo>
+	</PaytableData>
+	<PaytableData>
+		<StageTriggerInfo name="Wager_Try">
+			<Trigger name="Jackpot" stageConnector="WagerToJackpotPrize" />
+			<Trigger name="wager" stageConnector="WagerToWager" />
+		</StageTriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<WagerStrategyInfo name="Wager_Try">
+			<Trigger name="Jackpot" wagerState="pending" payoutState="noPayout" priority="10" />
+			<Trigger name="wager" wagerState="settled" payoutState="payout" priority="0" />
+		</WagerStrategyInfo>
+	</PaytableData>
+	<!-- END EXECUTION MODEL Wager_Try PaytableData -->
+
+	<!-- START EXECUTION MODEL Scenario PaytableData -->
+	<PaytableData>
+		<DeepCopyInfo name="Scenario">
+			<DeepCopy type="JSONOutcome" sourceName="ODEResponse.Encrypted" destinationName="ODEResponse" />
+		</DeepCopyInfo>
+	</PaytableData>
+	
+	<PaytableData>
+		<InstantWinNonCashPrizeInfo name="JackpotPrizes" nonCashPrizeAwardedTrigger="Jackpot">
+			<PricePoint amount="10">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="50">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="100">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="200">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="300">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="500">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="1000">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+			<PricePoint amount="2000">
+				<Prize division="1" tier="1" name="Jackpot" />
+			</PricePoint>
+		</InstantWinNonCashPrizeInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<PrizeInfo name="ODE" strategy="preventPrize" multiplierStrategy="null">
+			<Prize name="Total">
+				<PrizePay count="1" value="0" />
+			</Prize>
+		</PrizeInfo>
+	</PaytableData>
+	
+	<PaytableData>
+		<TriggerInfo name="ODE" >
+			<Trigger name="Jackpot"/>
+		</TriggerInfo>
+	</PaytableData>
+	
+	<PaytableData>
+		<TriggerInfo name="Scenario.Loop">
+			<Trigger name="Jackpot" />
+		</TriggerInfo>
+	</PaytableData>
+	
+	<PaytableData>
+		<StageTriggerInfo name="Scenario">
+			<Trigger name="Jackpot" stageConnector="ScenarioToJackpotPrize"/>
+		</StageTriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<WagerStrategyInfo name="Scenario">
+			<Trigger name="scenario" wagerState="pending" payoutState="noPayout" priority="0" />
+		</WagerStrategyInfo>
+	</PaytableData>
+	<!-- END EXECUTION MODEL Scenario PaytableData -->
+		<!-- START EXECUTION MODEL JackpotPrize PaytableData -->
+	<PaytableData>
+		<JackpotInfo name="Game.Jackpot" strategy="multilevel">
+			<Jackpot level="1" name="Jackpot" tier="1"/>
+		</JackpotInfo>
+	</PaytableData>
+	<PaytableData>
+		<StageTriggerInfo name="JackpotPrize">
+			<Trigger name="try" stageConnector="JackpotPrizeToWager" />
+			<Trigger name="buy" stageConnector="JackpotPrizeToReveal" />
+		</StageTriggerInfo>
+	</PaytableData>
+	
+	<PaytableData>
+		<WagerStrategyInfo name="JackpotPrize">
+			<Trigger name="try" wagerState="settled" payoutState="payout" priority="10" />
+			<Trigger name="buy" wagerState="pending" payoutState="noPayout" priority="0" />
+		</WagerStrategyInfo>
+	</PaytableData>
+	<!-- END EXECUTION MODEL JackpotPrize PaytableData -->
+
+	<!-- START EXECUTION MODEL Reveal PaytableData -->
+	<PaytableData>
+		<ODEInfo name="Reveal.Status" verificationStrategy="revealStatus">
+			<RevealIncompleteTrigger>incomplete</RevealIncompleteTrigger>
+			<RevealCompleteTrigger>complete</RevealCompleteTrigger>
+		</ODEInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<ODEInfo name="Reveal.RevealData" verificationStrategy="revealData" />
+	</PaytableData>
+
+	<PaytableData>
+		<StageTriggerInfo name="Reveal">
+			<Trigger name="incomplete" stageConnector="RevealToReveal" />
+			<Trigger name="complete" stageConnector="RevealToWager" />
+		</StageTriggerInfo>
+	</PaytableData>
+
+	<PaytableData>
+		<WagerStrategyInfo name="Reveal">
+			<Trigger name="incomplete" wagerState="pending" payoutState="noPayout" priority="50" />
+			<Trigger name="complete" wagerState="settled" payoutState="payout" priority="0" />
+		</WagerStrategyInfo>
+	</PaytableData>
+	<!-- END EXECUTION MODEL Reveal PaytableData -->
+</Paytable>

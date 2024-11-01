@@ -1,0 +1,879 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="gle-paytable-processor" basedir="." default="build" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+	<property environment="env"/>
+	<property file="build.properties"/>
+	<property name="GLEConfig.file" location="${basedir}/../../GLEConfig.xml"/>
+
+	<path id="maven.compile.classpath">
+		<pathelement path="${maven_compile_classpath}"/>
+	</path>
+
+	<path id="maven.plugin.classpath">
+		<pathelement path="${maven_plugin_classpath}"/>
+	</path>
+
+	<taskdef resource="net/sf/antcontrib/antlib.xml" classpathref="maven.plugin.classpath" />
+	<taskdef name="xmltask" classname="com.oopsconsultancy.xmltask.ant.XmlTask" classpathref="maven.plugin.classpath"/>
+
+	<condition property="RELEASE-BUILD" value="true">
+		<equals arg1="${BUILD_TYPE}" arg2="RELEASE" casesensitive="false"/>
+	</condition>
+
+	<xmltask source="${GLEConfig.file}">
+		<copy property="gamename" path="//family/game/@name"/>
+		<copy property="studio" path="//family/@studio"/>
+		<copy property="default.paytable" path="//family/game[1]/paymodel[1]/@modelid"/>
+		<copy property="default.gameNumber" path="//family/game[1]/@number"/>
+		<copy property="familyid" path="//family/@code"/>
+	</xmltask>
+
+	<property name="game.family" value="300-${familyid}"/>
+	<property name="game.id" value="300-${familyid}-${default.gameNumber}"/>
+	<property name="game.paytable" value="${default.paytable}"/>
+
+	<property name="game.ear.dir" location="${env.IGDK_HOME}/game.ear"/>
+	<property name="localgamedata.xml.file" location="${env.IGDK_HOME}/game.ear/classes/localgamedata.xml"/>
+
+	<!-- File PatternSets -->
+	<patternset id="paytables.force.patternset">
+		<include name="*-Force.html"/>
+		<include name="*-Force.xml"/>
+	</patternset>
+	<patternset id="paytables.configs.patternset">
+		<include name="*-Filter.xml"/>
+		<include name="*-Mapping.xml"/>
+		<include name="*-Stage.xml"/>
+	</patternset>
+	<patternset id="paytables.paymodels.patternset">
+		<include name="*-Init.xml"/>
+		<include name="*-Paytable.xml"/>
+		<include name="*-PaytableHelp.xml"/>
+	</patternset>
+	<patternset id="paytables.transforms.patternset">
+		<include name="*-Ghst.xsl"/>
+		<include name="*-GhstTran-*.xml"/>
+	</patternset>
+	<patternset id="transform-utils.patternset">
+		<include name="ForceUtils.xsl"/>
+		<include name="GhstUtils.xsl"/>
+		<include name="HTML-CCFR.xsl"/>
+		<include name="utils.xsl"/>
+		<include name="*-ForceHtml.xsl"/>
+		<include name="*-ForceXml.xsl"/>
+		<include name="*-PreGhst.xsl"/>
+		<include name="*-Paytable.xsl"/>
+	</patternset>
+	<patternset id="paytables.paytable.patternset">
+		<include name="*-Paytable.xml"/>
+	</patternset>
+
+	<target name="setup-env">
+		<available file="${game.ear.dir}" type="dir" property="gameear-exists"/>
+		<available file="${localgamedata.xml.file}" type="file" property="localgameadata-exists"/>
+		<available file="${basedir}/demo" type="dir" property="demo-paytables-exist"/>
+		<available file="${basedir}/official" type="dir" property="official-paytables-exist"/>
+		<available file="${basedir}/demo/cds_pool" type="dir" property="cds-data-exists"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${target.dir}/paytables"/>
+		<delete file="${target.dir}/paytables-official.zip"/>
+		<delete file="${target.dir}/paytables-demo.zip"/>
+	</target>
+
+	<target name="package" depends="build">
+		<antcall target="package-official-paytables"/>
+		<antcall target="package-demo-paytables"/>
+	</target>
+
+	<target name="package-official-paytables" if="official-paytables-exist">
+		<zip destfile="${target.dir}/paytables-official.zip" level="9" filesonly="true">
+			<zipfileset dir="${target.dir}/paytables/official" includes="**/*" excludes="**/*-Force.*"/>
+			<zipfileset dir="${target.dir}/paytables" includes="*.sql"/>
+		</zip>
+	</target>
+
+	<target name="package-demo-paytables">
+		<zip destfile="${target.dir}/paytables-demo.zip" level="9" filesonly="true">
+			<zipfileset dir="${target.dir}/paytables/demo" includes="**/*"/>
+			<zipfileset dir="${target.dir}/paytables" includes="*.sql"/>
+			<zipfileset dir="${target.dir}/paytables" includes="localgamedata.xml" />
+		</zip>
+	</target>
+
+	<target name="build" depends="clean,setup-env">
+		<echo message="[${studio}] Processing paymodel files for ${gamename}..."/>
+
+		<copy file="${templates.dir}/ForceUtils.xsl" tofile="${target.dir}/paytables/ForceUtils.xsl" overwrite="true"/>
+		<copy file="${templates.dir}/utils.xsl" tofile="${target.dir}/paytables/utils.xsl" overwrite="true"/>
+
+		<antcall target="process-official"/>
+		<antcall target="process-demo"/>
+		<antcall target="sign-files">
+			<param name="dir" value="${target.dir}/paytables/demo"/>
+		</antcall>
+		<antcall target="generate-cds-mdfc-data">
+			<param name="type" value="demo"/>
+		</antcall>
+		<antcall target="generate-sql"/>
+		<antcall target="build-local"/>
+		<antcall target="filter"/>
+	</target>
+
+	<target name="process-official" if="official-paytables-exist">
+		<mkdir dir="${target.dir}/paytables/official"/>
+		<copy todir="${target.dir}/paytables/official" overwrite="true">
+			<fileset dir="${basedir}/demo">
+				<exclude name="GLEConfig.xml"/>
+				<exclude name="*Histo.xml"/>
+				<exclude name="build.xml"/>
+				<exclude name="*-Paytable.xml"/>
+				<exclude name="*-Mapping.xml"/>
+				<exclude name="*-Stage.xml"/>
+				<include name="*.xml"/>
+				<include name="*.xsl"/>
+                <include name="*.fil"/>
+			</fileset>
+			<fileset dir="${basedir}/official">
+				<exclude name="GLEConfig.xml"/>
+				<exclude name="*Histo.xml"/>
+				<exclude name="build.xml"/>
+				<include name="mdfc_data/**/*"/>
+				<include name="*.xml"/>
+			</fileset>
+		</copy>
+
+		<mkdir dir="${target.dir}/paytables/demo"/>
+		<copy todir="${target.dir}/paytables/demo" overwrite="true">
+			<fileset dir="${basedir}/demo">
+				<exclude name="GLEConfig.xml"/>
+				<exclude name="*Histo.xml"/>
+				<exclude name="build.xml"/>
+				<include name="*.xml"/>
+				<include name="*.xsl"/>
+			</fileset>
+		</copy>
+
+		<antcall target="process-paytable-files">
+			<param name="type" value="official"/>
+		</antcall>
+		
+		<delete>
+			<fileset dir="${target.dir}/paytables/official" >
+				<patternset refid="transform-utils.patternset"/>
+				<include name="*-Force.*"/>
+			</fileset>
+		</delete>
+	</target>
+
+	<target name="process-demo" unless="RELEASE-BUILD">
+		<mkdir dir="${target.dir}/paytables/demo"/>
+		<copy todir="${target.dir}/paytables/demo" overwrite="true">
+			<fileset dir="${basedir}/demo">
+				<exclude name="GLEConfig.xml"/>
+				<exclude name="*Histo.xml"/>
+				<exclude name="build.xml"/>
+				<include name="*.xml"/>
+				<include name="*.xsl"/>
+                <include name="*.fil"/>
+			</fileset>
+		</copy>
+
+		<antcall target="process-paytable-files">
+			<param name="type" value="demo"/>
+		</antcall>
+		
+		<!--delete>
+			<fileset dir="${target.dir}/paytables/demo" >
+				<patternset refid="transform-utils.patternset"/>
+			</fileset>
+		</delete-->
+		<copy todir="${target.dir}/paytables/demo" includeemptydirs="false">
+			<fileset dir="${target.dir}/paytables/demo">
+				<include name="*-Force.xml"/>
+			</fileset>
+			<mapper type="glob" from="*" to="*.tmpl"/>
+		</copy>
+	</target>
+
+	<target name="process-paytable-files">
+		<fileset id="paytables.paytable.files" dir="${target.dir}/paytables/${type}">
+			<patternset refid="paytables.paytable.patternset"/>
+		</fileset>
+		<pathconvert property="paytables.paymodels" refid="paytables.paytable.files" pathsep=",">
+			<mapper>
+				<chainedmapper>
+					<flattenmapper/>
+					<regexpmapper from="([0-9]{3}-[0-9]{4}-[0-9]{3})?" to="\1" casesensitive="no"/>
+				</chainedmapper>
+			</mapper>
+		</pathconvert>
+
+		<for list="${paytables.paymodels}" param="paymodel.id"> 
+			<sequential> 
+				<propertyregex
+					property="game.id"
+					input="${paymodel.prefix}" 
+					regexp="([0-9]{3}-[0-9]{4}-[0-9]{1}){1}" 
+					select="\1" 
+					override="true"/>
+					
+				<!--xslt in="${target.dir}/paytables/${type}/@{paymodel.id}-Paytable.xml" style="${target.dir}/paytables/${type}/${game.id}-ForceHtml.xsl" out="${target.dir}/paytables/${type}/@{paymodel.id}-Force.html" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/>
+				<xslt in="${target.dir}/paytables/${type}/@{paymodel.id}-Paytable.xml" style="${target.dir}/paytables/${type}/${game.id}-ForceXml.xsl" out="${target.dir}/paytables/${type}/@{paymodel.id}-Force.xml" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/>
+				<xslt in="${target.dir}/paytables/${type}/@{paymodel.id}-Paytable.xml" style="${target.dir}/paytables/${type}/${game.id}-Paytable.xsl" out="${target.dir}/paytables/${type}/@{paymodel.id}-PaytableHelp.xml" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/-->
+
+				<!--xslt in="${target.dir}/paytables/demo/@{paymodel.id}-Paytable.xml" style="${target.dir}/paytables/demo/${game.id}-ForceHtml.xsl" out="${target.dir}/paytables/${type}/@{paymodel.id}-Force.html" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/>
+				<xslt in="${target.dir}/paytables/demo/@{paymodel.id}-Paytable.xml" style="${target.dir}/paytables/demo/${game.id}-ForceXml.xsl" out="${target.dir}/paytables/${type}/@{paymodel.id}-Force.xml" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/>
+				<xslt in="${target.dir}/paytables/demo/@{paymodel.id}-Paytable.xml" style="${target.dir}/paytables/demo/${game.id}-Paytable.xsl" out="${target.dir}/paytables/${type}/@{paymodel.id}-PaytableHelp.xml" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/-->
+
+				<condition property="preghst-exists" value="true">
+					<available file="${target.dir}/paytables/${type}/${game.id}-PreGhst.xsl" type="file"/>
+				</condition>
+				<antcall target="process-ghst">
+					<param name="paymodel.id" value="@{paymodel.id}"/>
+					<param name="game.id" value="${game.id}"/>
+					<param name="type" value="${type}"/>
+				</antcall>
+			</sequential> 
+		</for>
+	</target>
+
+	<target name="process-ghst" if="preghst-exists">
+		<!--xslt basedir="${target.dir}/paytables/${type}" in="${target.dir}/paytables/${type}/${paymodel.id}-Paytable.xml" style="${target.dir}/paytables/${type}/${game.id}-PreGhst.xsl" out="${target.dir}/paytables/${type}/${game.id}-Ghst.xsl" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/-->
+		<xslt basedir="${target.dir}/paytables/${type}" in="${target.dir}/paytables/demo/${paymodel.id}-Paytable.xml" style="${target.dir}/paytables/demo/${game.id}-PreGhst.xsl" out="${target.dir}/paytables/${type}/${game.id}-Ghst.xsl" processor="trax" force="true" failOnError="true" failOnTransformationError="true" failOnNoResources="true"/>
+	</target>
+
+	<target name="sign-files" unless="RELEASE-BUILD">
+		<ant antfile="${dependencies.dir}/signtool-build.xml" dir="${basedir}" target="sign-all-demo" inheritAll="true" inheritRefs="true">
+			<property name="input" location="${dir}"/>
+			<property name="output" location="${dir}"/>
+			<property name="maven_compile_classpath" refid="maven.compile.classpath"/>
+			<property name="maven_plugin_classpath" refid="maven.plugin.classpath"/>
+		</ant>
+	</target>
+
+	<target name="build-local" if="gameear-exists" unless="nolocal">
+		<antcall target="generate-localgamedata"/>
+
+		<copy todir="${game.ear.dir}/classes/gleForce" overwrite="true">
+			<fileset dir="${target.dir}/paytables/demo" >
+				<patternset refid="paytables.force.patternset"/>
+			</fileset>
+		</copy>
+		<copy todir="${game.ear.dir}/classes/game/configs" overwrite="true">
+			<fileset dir="${target.dir}/paytables/demo" >
+				<patternset refid="paytables.configs.patternset"/>
+			</fileset>
+		</copy>
+		<copy todir="${game.ear.dir}/classes/game/paymodels" overwrite="true">
+			<fileset dir="${target.dir}/paytables/demo" >
+				<patternset refid="paytables.paymodels.patternset"/>
+			</fileset>
+		</copy>
+		<copy todir="${game.ear.dir}/classes/game/transforms" overwrite="true">
+			<fileset dir="${target.dir}/paytables/demo" >
+				<patternset refid="paytables.transforms.patternset"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="generate-cds-mdfc-data" depends="" if="cds-data-exists">
+		<taskdef classname="com.igt.gle.build.ant.task.MDFCGeneratorTask" name="mdfcGenerator">
+			<classpath refid="maven.compile.classpath"/>
+		</taskdef>
+		<mkdir dir="${target.dir}/paytables/${type}/mdfc_data"/>
+		<mdfcGenerator cDSPoolFolder="${basedir}/${type}/cds_pool" destFolder="${target.dir}/paytables/${type}/mdfc_data"/>
+	</target>
+
+	<target name="generate-sql">
+		<antcall target="generate-sql-official"/>
+		<antcall target="generate-sql-demo"/>
+	</target>
+
+	<target name="generate-sql-official" if="RELEASE-BUILD">
+		<taskdef name="processGleLoadScripts" classname="com.igt.interactivegame.rgs.tools.LoadScriptProcessor.ProcessGleLoadScripts">
+			<classpath refid="maven.compile.classpath"/>
+		</taskdef>
+		<processGleLoadScripts basedir="${target.dir}/paytables/official" configfile="${GLEConfig.file}" todir="${target.dir}/paytables"/>
+	</target>
+
+	<target name="generate-sql-demo" unless="RELEASE-BUILD">
+		<taskdef name="processGleLoadScripts" classname="com.igt.interactivegame.rgs.tools.LoadScriptProcessor.ProcessGleLoadScripts">
+			<classpath refid="maven.compile.classpath"/>
+		</taskdef>
+		<processGleLoadScripts basedir="${target.dir}/paytables/demo" configfile="${GLEConfig.file}" todir="${target.dir}/paytables"/>
+	</target>
+
+	<target name="generate-localgamedata">
+		<taskdef name="processLocalBuild" classname="com.igt.interactivegame.rgs.tools.LocalBuildProcessor.ProcessLocalBuild">
+			<classpath refid="maven.compile.classpath"/>
+		</taskdef>
+		<processLocalBuild style="${templates.dir}/Games.xsl" mergeStyle="${templates.dir}/GameMerge.xsl" GleConfigXml="${GLEConfig.file}" 
+		currencyDenomXml="${templates.dir}/currency_denom.xml" outXml="${target.dir}/paytables/localgamedata.xml"/>
+	</target>
+
+	<target name="filter" if="RELEASE-BUILD">
+		<delete dir="${target.dir}/paytables/demo"/>
+	</target>
+
+	<target name="generate-localgamedata-old" if="localgameadata-exists">
+		<delete failonerror="false">
+			<fileset dir="${target.dir}">
+				<include name="localgamedata.xml"/>
+			</fileset>
+		</delete>
+
+		<xslt in="${GLEConfig.file}" style="${templates.dir}/localgamedata.xsl" out="${target.dir}/localgamedata.xml" processor="trax" force="true"/>
+
+		<xmltask source="${env.IGDK_HOME}/game.ear/classes/localgamedata.xml" dest="${env.IGDK_HOME}/game.ear/classes/localgamedata.xml">
+			<remove path="//gamedata/denoms/denom[contains(denomid/text(),'9999')]"/>
+			<remove path="//gamedata/games/game[contains(gameid/text(),'${localgamedata.gameid}')]"/>
+			<remove path="//gamedata/types/type[contains(gameFolder/text(),'${gamename}')]"/>
+			<remove path="//gamedata/selections/selection[contains(gameid/text(),'${localgamedata.gameid}')]"/>
+			<remove path="//gamedata/paymodels/paymodel[contains(gameid/text(),'${localgamedata.gameid}')]"/>
+		</xmltask>
+
+		<xmltask source="${target.dir}/localgamedata.xml">
+			<copy path="//gamedata/denoms/denom[contains(denomid/text(),'9999')]" buffer="denoms" append="true"/>
+			<copy path="//gamedata/games/game[contains(gameid/text(),'${familyid}')]" buffer="games" append="true"/>
+			<copy path="//gamedata/types/type[contains(gameFolder/text(),'${gamename}')]" buffer="types" append="true"/>
+			<copy path="//gamedata/selections/selection[contains(gameid/text(),'${familyid}')]" buffer="selections" append="true"/>
+			<copy path="//gamedata/paymodels/paymodel[contains(gameid/text(),'${familyid}')]" buffer="paymodels" append="true"/>
+		</xmltask>
+
+		<xmltask source="${env.IGDK_HOME}/game.ear/classes/localgamedata.xml" dest="${localgamedata.xml.file}">
+			<insert path="//gamedata/denoms/denom[1]" buffer="denoms" position="before"/>
+			<insert path="//gamedata/games/game[1]" buffer="games" position="before"/>
+			<insert path="//gamedata/types/type[1]" buffer="types" position="before"/>
+			<insert path="//gamedata/selections/selection[1]" buffer="selections" position="before"/>
+			<insert path="//gamedata/paymodels/paymodel[1]" buffer="paymodels" position="before"/>
+		</xmltask>
+	</target>
+
+	<target name="make-official" depends="setup-env">
+		<ant antfile="${dependencies.dir}/signtool-build.xml" dir="${basedir}" target="signtool" inheritAll="true" inheritRefs="true">
+			<reference refid="maven.compile.classpath"/>
+			<property name="demo.paytables" location="${basedir}/demo"/>
+			<property name="official.paytables" location="${basedir}/official"/>
+			<property name="gle.paytablesignertool.version" value="${pom.properties.gle.paytablesignertool.version}"/>
+			<property name="gle.mdfcgeneratortask.version" value="${pom.properties.gle.mdfcgeneratortask.version}"/>
+		</ant>
+	</target>
+
+	<target name="check-java-version">
+		<fail message="Unsupported Java version: ${java.version}. Make sure that the version of the Java compiler is 1.6 (6.0) or greater.">
+			<condition>
+				<or>
+					<contains string="${java.version}" substring="1.4" casesensitive="false" />
+					<contains string="${java.version}" substring="1.5" casesensitive="false" />
+				</or>
+			</condition>
+		</fail>
+	</target>
+
+	<target name="setup-histo">
+		<property file="${user.home}/.user-histo.properties" />
+		<property file="${dependencies.dir}/build/gle/default-histo.properties"/>
+		<input
+			message="[HISTO: ${gamename}] Enter Histo Runs"
+			addproperty="new.histo.runs"
+			defaultvalue="${histo.runs}"
+		/>
+		<input
+			message="[HISTO: ${gamename}] Enter Number of Threads"
+			addproperty="new.histo.threads"
+			defaultvalue="${histo.threads}"
+		/>
+		<input
+			message="[HISTO: ${gamename}] Enter SoftwareId"
+			addproperty="new.softwareid"
+			defaultvalue="${default.paytable}"
+		/>
+		<tstamp>
+			<format property="timestamp" pattern="MMddyyhhmmss" locale="en,US"/>
+		</tstamp>
+		<propertyregex property="family"
+              input="${new.softwareid}"
+              regexp="([0-9]{3})-([0-9]{4})-([0-9]{3})"
+              select="\2"
+              casesensitive="false"/>
+		<propertyregex property="paymodel"
+              input="${new.softwareid}"
+              regexp="([0-9]{3})-([0-9]{4})-([0-9]{3})"
+              select="\3"
+              casesensitive="false"/>
+        <propertyregex property="gamenamewsr"
+              input="${gamename}"
+              regexp=" "
+              replace="_"
+              casesensitive="false"/>
+		<property name="UUID" value="${gamenamewsr}_${family}_${paymodel}_${timestamp}"/>
+	</target>
+
+	<target name="histo">
+		<antcall target="run-histo">
+			<param name="histo.type" value="Histo"/>
+		</antcall>
+	</target>
+
+	<target name="binhisto">
+		<antcall target="run-histo">
+			<param name="histo.type" value="BinHisto"/>
+		</antcall>
+	</target>
+
+	<condition property="jvmargs" value="-Xms768m -Xmx1024m -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=1044" else="-Xms768m -Xmx1024m">
+		<equals arg1="${debug}" arg2="true" casesensitive="false"/>
+	</condition>
+
+	<target name="run-histo" depends="setup-env,setup-histo">
+		<property name="histo.work.dir" location="${target.dir}/histo"/>
+		<property name="histo.dir" location="${target.dir}/histo/${UUID}"/>
+		<property name="histo.results.dir" location="${target.dir}/histo-results/${UUID}"/>
+		<delete dir="${histo.work.dir}"/>
+		<delete dir="${histo.results.dir}"/>
+
+		<mkdir dir="${histo.dir}/game"/>
+		<mkdir dir="${histo.results.dir}"/>
+		<copy todir="${histo.dir}" overwrite="true" flatten="true">
+			<fileset dir="${dependencies.dir}/histo">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="${histo.dir}/game" overwrite="true" flatten="true">
+			<fileset dir="${basedir}/demo">
+				<include name="*-Paytable.xml"/>
+				<include name="*-Stage.xml"/>
+				<include name="*-Mapping.xml"/>
+				<include name="*-Init.xml"/>
+				<include name="*-Histo.xml"/>
+				<include name="GameLoad.properties"/>
+			</fileset>
+		</copy>
+		
+		<copy todir="${histo.dir}" overwrite="true">
+			<fileset dir="${templates.dir}">
+				<include name="histo-parameters.xml"/>
+				<include name="simulation-parameters.xml"/>
+			</fileset>
+			<filterset begintoken="@" endtoken="@">
+				<filter token="THREADS" value="${new.histo.threads}"/>
+				<filter token="HISTO_RESULT_DIR" value="${histo.results.dir}"/>
+				<filter token="SOFTWARE_ID" value="${new.softwareid}"/>
+				<filter token="MIN_BET" value="${min.bet}"/>
+				<filter token="CURRENCY_CODE" value="${currency.code}"/>
+				<filter token="LANGUAGE" value="${language}"/>
+				<filter token="RUNS" value="${new.histo.runs}"/>
+				<filter token="DENOM" value="${denom}"/>
+				<filter token="MAX_BET" value="${max.bet}"/>
+				<filter token="MIN_SIDE_BET" value="${min.side.bet}"/>
+				<filter token="MAX_SIDE_BET" value="${max.side.bet}"/>
+				<filter token="BET_MULTIPLIERS" value="${bet.multipliers}"/>
+				<filter token="DEFAULT_BET_MULTIPLIER" value="${default.bet.multiplier}"/>
+				<filter token="AWARDCAPVALUE" value="${awardcapvalue}"/>
+			</filterset>
+		</copy>
+		
+		<java classname="com.wagerworks.gts.simulator.loader.HistoSimulationLoader" failonerror="yes" fork="yes">
+			<classpath>
+				<pathelement location="${histo.dir}"/>
+				<path refid="maven.compile.classpath"/>
+			</classpath>
+			<arg value="histo-parameters.xml" />
+			<arg value="simulation-parameters.xml" />
+			<!-- jvmarg value="-Dcom.sun.management.jmxremote"/ -->
+			<jvmarg line="${jvmargs}"/>
+		</java>
+	</target>
+
+	<target name="prep-cloudhisto" depends="check-java-version">
+		<property name="histo.work.dir" location="${target.dir}/histo"/>
+		<property name="histo.dir" location="${target.dir}/histo/${UUID}"/>
+		<property name="histo.results.dir" location="${target.dir}/histo/${UUID}/results"/>
+		<delete dir="${histo.work.dir}"/>
+		<delete dir="${histo.results.dir}"/>
+
+		<mkdir dir="${histo.dir}/game"/>
+		<mkdir dir="${histo.results.dir}"/>
+		<copy todir="${histo.dir}" overwrite="true" flatten="true">
+			<fileset dir="${dependencies.dir}/histo">
+				<include name="**/*"/>
+			</fileset>
+		</copy>
+		<copy todir="${histo.dir}/game" overwrite="true" flatten="true">
+			<fileset dir="${basedir}/demo">
+				<include name="*-Paytable.xml"/>
+				<include name="*-Stage.xml"/>
+				<include name="*-Mapping.xml"/>
+				<include name="*-Init.xml"/>
+				<include name="*-Histo.xml"/>
+				<include name="GameLoad.properties"/>
+			</fileset>
+		</copy>
+		
+		<copy todir="${histo.dir}" overwrite="true">
+			<fileset dir="${templates.dir}">
+				<include name="histo-parameters.xml"/>
+				<include name="simulation-parameters.xml"/>
+			</fileset>
+			<filterset begintoken="@" endtoken="@">
+				<filter token="THREADS" value="${new.histo.threads}"/>
+				<filter token="HISTO_RESULT_DIR" value="${histo.results.dir}"/>
+				<filter token="SOFTWARE_ID" value="${new.softwareid}"/>
+				<filter token="MIN_BET" value="${min.bet}"/>
+				<filter token="CURRENCY_CODE" value="${currency.code}"/>
+				<filter token="LANGUAGE" value="${language}"/>
+				<filter token="RUNS" value="${new.histo.runs}"/>
+				<filter token="DENOM" value="${denom}"/>
+				<filter token="MAX_BET" value="${max.bet}"/>
+				<filter token="MIN_SIDE_BET" value="${min.side.bet}"/>
+				<filter token="MAX_SIDE_BET" value="${max.side.bet}"/>
+				<filter token="BET_MULTIPLIERS" value="${bet.multipliers}"/>
+				<filter token="DEFAULT_BET_MULTIPLIER" value="${default.bet.multiplier}"/>
+				<filter token="AWARDCAPVALUE" value="${awardcapvalue}"/>
+			</filterset>
+		</copy>
+
+		<mkdir dir="${histo.dir}/lib"/>
+		<copy todir="${histo.dir}/lib" flatten="true">
+			<path refid="dependencies.classpath"/>
+		</copy>
+
+		<uuid property="sim.file.dir.tmp"/>
+		<propertyregex
+			property="sim.file.dir"
+			input="${sim.file.dir.tmp}"
+			regexp="-"
+			replace="_"/>
+
+		<ant dir="${gts.home}" inheritall="false" target="setup.sim.file">
+			<property name="sim.file.dest" value="${sim.file.dir}"/>
+			<property name="histo.result.dir" value="/p4root/gs_rgs/build" />
+
+			<property name="software.id" value="${software.id}" />
+			<property name="min.bet" value="${min.bet}" />
+			<property name="currency.code" value="${currency.code}" />
+			<property name="language" value="${language}" />
+			<property name="histo.runs" value="${histo.runs}" />
+			<property name="histo.threads" value="${histo.threads}"/>
+			<property name="build.classes" value="${rgs.deploy.ear.classes}" />
+			<property name="bet.multipliers" value="${bet.multipliers}" />
+			<property name="default.bet.multiplier" value="${default.bet.multiplier}" />
+			<property name="awardcapvalue" value="${awardcapvalue}" />
+		</ant>
+
+		<echo message="prep-histo messages"/>
+		<echo message="${__build.file.loc}::histo"/>
+		<condition property="histo.type" value="BinHisto" else="Histo">
+			<isset property="binhisto"/>
+		</condition>
+		<copy file="${final.paytables}/${game}/${game.family}-${histo.type}.xml" tofile="${rgs.deploy.ear.classes}/game/${game.family}-Histo.xml" overwrite="true" verbose="false"/>
+
+		<!-- Convert class path from win32 format to unix format -->
+		<pathconvert targetos="unix" property="unix.compile.classpath" refid="compile.classpath">
+			<map from="${rgs.deploy.ear.lib}" to="lib"/>
+		</pathconvert>
+
+		<path id="rgs.deploy.ear.classes.path">
+			<pathelement path="${rgs.deploy.ear.classes}"/>
+		</path>
+
+		<pathconvert pathsep="${line.separator}|   |-- "
+		property="echo.rgs.deploy.ear.classes.path"
+		refid="rgs.deploy.ear.classes.path">
+		</pathconvert>		
+
+		<!-- Convert class path from win32 format to unix format -->			
+		<pathconvert targetos="unix" property="unix.rgs.deploy.ear.classes" refid="rgs.deploy.ear.classes.path">
+			<map from="${rgs.deploy.ear.classes}" to="classes"/>
+		</pathconvert>
+
+		<!-- Default jvm options for the cloud histo. -->
+		<property name="jvm_options" value="-Xms768m -Xmx7168m" />								
+		<!-- TODO: add build.option that contains the java parameters-->
+		<copy file="${templates.dir}/histo-runner.sh.tmpl" tofile="${rgs.deploy.ear}/histo-runner.sh" overwrite="true">
+			<filterset begintoken="@" endtoken="@">
+				<filter token="JVM_OPTIONS" value="${jvm_options}"/>
+				<filter token="UNIX.RGS.DEPLOY.EAR.CLASSES" value="${unix.rgs.deploy.ear.classes}"/>
+				<filter token="UNIX.COMPILE.CLASSPATH" value="${unix.compile.classpath}"/>
+
+				<filter token="SIM.FILE.DIR" value="${sim.file.dir}"/>
+				<filter token="IGDK_HOME" value="/tmp"/>
+			</filterset>
+
+			<mapper type="glob" from="*.tmpl" to="*"/>
+			<filterchain>
+				<fixcrlf eol="unix" eof="remove" />
+			</filterchain>
+		</copy>
+
+		<!-- TODO: generate the aggregator script script -->
+		<copy file="${templates.dir}/aggregateResults.sh.tmpl" tofile="${rgs.deploy.ear}/aggregateResults.sh" overwrite="true" >
+			<filterset begintoken="@" endtoken="@"> 
+				<filter token="JVM_OPTIONS" value="${jvm_options}"/>
+				<filter token="UNIX.RGS.DEPLOY.EAR.CLASSES" value="${unix.rgs.deploy.ear.classes}"/>
+				<filter token="UNIX.COMPILE.CLASSPATH" value="${unix.compile.classpath}"/>
+				<filter token="IGDK_HOME" value="/tmp"/>
+			</filterset>
+			<mapper type="glob" from="*.tmpl" to="*"/>
+			<filterchain>
+				<fixcrlf eol="unix" eof="remove" />
+			</filterchain>			
+		</copy>
+
+		<!-- Replace the UUID characters "_" with "" -->
+		<propertyregex property="uuid.clean"
+               input="${sim.file.dir}"
+               regexp="_"
+               replace="" />
+
+		<!-- Remove any non a-z, A-Z and 0-9 characters from the username. -->
+		<propertyregex property="user.name.clean"
+               input="${user.name}"
+               regexp="[^a-zA-Z0-9]*"
+               replace="" />
+
+		<!-- Make the user name lower case -->
+		<pathconvert property="user.name.lowercase">
+			<path path="${user.name.clean}"/>
+			<chainedmapper>
+				<flattenmapper/>
+				<scriptmapper language="javascript">
+				 self.addMappedName(source.toLowerCase()); 
+				</scriptmapper>
+			</chainedmapper>
+		</pathconvert>
+
+		<!-- Make the game name lower case -->
+		<pathconvert property="game.lowercase">
+			<path path="${game}"/>
+			<chainedmapper>
+				<flattenmapper/>
+				<scriptmapper language="javascript">
+				 self.addMappedName(source.toLowerCase()); 
+				</scriptmapper>
+			</chainedmapper>
+		</pathconvert>		  
+
+		<!-- Create a timestamp file -->
+		<tstamp>
+			<format property="current.time" pattern="yyyy-MM-dd'T'HH:mm:ss.SSSZ" />
+		</tstamp>
+
+		<!-- Create properties used within the scripts -->
+		<!-- TODO: eventually move to a .options file -->
+		<property name="gcutil_service_version" value="v1" />
+		<property name="gcutil_project" value="cloudhisto" />
+		<property name="game_name" value="${game.lowercase}" />
+		<property name="deploy_type" value="single-node" />
+		<property name="instance_name" value="histo-${uuid.clean}" />
+		<property name="disk_name" value="histo-${uuid.clean}" />
+		<property name="gs_root_path" value="gs://${gcutil_project}/histopackages/${uuid.clean}/" />
+		<property name="http_root_path" value="https://storage.cloud.google.com/${gcutil_project}/histopackages/${uuid.clean}/" />
+
+		<property name="gts_zip_filename" value="GTS-${uuid.clean}.zip" />
+		<property name="startup_script_name" value="startup-script-${uuid.clean}.sh" />
+		<property name="deploy_script_name" value="deploy-${uuid.clean}.sh" />
+		<property name="histo_type" value="histo" />
+		<!-- histo for prep-histo and binhisto for prep-binhisto -->
+		<!-- NOTE: deploy_type sets this property. -->
+		<!-- property name="histo_node_type" value="single-node" / -->
+		<!-- histo node type declares if the instance should run in as a standalone node or multi master/slave configuration -->
+		<property name="histo_mode" value="none" />
+		<!-- histo modes: master, slave, none. master should be set if running in a multi-node configuration -->
+		<property name="histo_node_instances" value="1" />
+		<!-- histo node instances is the number of slave nodes the histo should run if in histo_mode=master-->
+		<property name="machine_type" value="n1-highcpu-8" />
+		<property name="gce_zone" value="us-central1-a" />
+		<property name="gce_network" value="default" />
+		<property name="gce_ip" value="ephemeral" />
+		<property name="gce_image" value="https://www.googleapis.com/compute/v1/projects/cloudhisto/global/images/histo-engine-v1" />
+		<property name="gce_persistent_boot_disk" value="true" />
+		<property name="gce_scopes" value="https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/compute,https://www.googleapis.com/auth/devstorage.full_control" />
+		<property name="gce_local_startup_script_log" value="/var/log/startupscript.log" />
+		<property name="gce_metadata_server" value="http://metadata/computeMetadata/v1/" />
+		<property name="ssh_port" value="443" />
+		<property name="ssh_user" value="${user.name}" />
+
+		<!-- Properties used for formatting of gs:// links to cloud storage -->
+		<property name="gs_gts_zip_path" value="${gs_root_path}${gts_zip_filename}" />
+		<property name="gs_startup_script_path" value="${gs_root_path}${startup_script_name}" />
+		<property name="gs_deploy_script_path" value="${gs_root_path}${deploy_script_name}" />
+		<property name="gs_preprocessed_path" value="${gs_root_path}preprocessed/" />
+		<property name="gs_processed_path" value="${gs_root_path}processed/" />
+		<!-- property name="gs_startup_script_log" value="${gs_root_path}startupscript.log" /-->
+		<!-- Properties used for formatting of http:// links to cloud storage -->
+		<property name="http_gts_zip_path" value="${http_root_path}${gts_zip_filename}" />
+		<property name="http_startup_script_path" value="${http_root_path}${startup_script_name}" />
+		<property name="http_deploy_script_path" value="${http_root_path}${deploy_script_name}" />
+		<property name="http_preprocessed_path" value="${http_root_path}preprocessed/" />
+		<property name="http_processed_path" value="${http_root_path}processed/" />
+		<!-- property name="http_startup_script_log" value="${http_root_path}startupscript.log" / -->
+
+		<!-- metadata related to deployment and build of gts -->
+		<property name="metadata_histo_uuid" value="histo-uuid:${uuid.clean}" />
+		<property name="metadata_histo_instance_name" value="histo-instance-name:${instance_name}" />
+		<property name="metadata_histo_instance_disk_name" value="histo-instance-disk-name:${disk_name}" />
+		<property name="metadata_histo_type" value="histo-type:${histo_type}" />
+		<property name="metadata_histo_node_type" value="histo-node-type:${deploy_type}" />
+		<!-- property name="metadata_histo_node_type" value="histo-node-type:${histo_node_type}" / -->
+		<!-- NOTE: deploy_type sets the single-node vs multi-node -->
+		<property name="metadata_histo_mode" value="histo-mode:${histo_mode}" />
+		<property name="metadata_histo_node_instances" value="histo-node-instances:${histo_node_instances}" />
+		<property name="metadata_histo_buildtime" value="histo-buildtime:${current.time}" />
+		<property name="metadata_histo_paytable_id" value="histo-paytable-id:${software.id}" />
+
+		<property name="metadata_histo_user" value="histo-user:${user.name}" />
+		<property name="metadata_histo_game" value="histo-game:${game_name}" />
+		<property name="metadata_histo_runs" value="histo-runs:${histo.runs}" />
+		<property name="metadata_histo_threads" value="histo-threads:${histo.threads}" />
+		<property name="metadata_histo_gts_zip" value="histo-gts-zip:${gs_gts_zip_path}" />
+		<property name="metadata_histo_deploy_script" value="histo-deploy-script:${gs_deploy_script_path}" />
+
+		<property name="metadata_histo_startup_script" value="histo-startup-script:${gs_startup_script_path}" />
+		<property name="metadata_startup_script" value="startup-script-url:${gs_startup_script_path}" />
+		<property name="metadata_histo_preprocessed_path" value="histo-preprocessed-path:${gs_preprocessed_path}" />
+		<property name="metadata_histo_processed_path" value="histo-processed:${gs_processed_path}" />
+
+		<!-- metadata related to http locations of files -->
+		<property name="metadata_histo_http_root_path" value="histo-http-root-path:${http_root_path}" />
+		<property name="metadata_histo_http_gts_zip_path" value="histo-http-gts-zip-path:${http_gts_zip_path}" />
+		<property name="metadata_histo_http_startup_script_path" value="histo-http-startup-script-path:${http_startup_script_path}" />
+		<property name="metadata_histo_http_deploy_script_path" value="histo-http-deploy-script-path:${http_deploy_script_path}" />
+		<property name="metadata_histo_http_preprocessed_path" value="histo-http-preprocessed-path:${http_preprocessed_path}" />
+		<property name="metadata_histo_http_processed_path" value="histo-http-processed-path:${http_processed_path}" />
+		<!-- Properties used for emailing results. -->
+		<property name="email_script_name" value="emailResults.js" />
+		<property name="email_from" value="${cloudhisto.success.email}" />
+		<property name="email_to_successful" value="${cloudhisto.success.email}" />
+		<property name="email_to_failed" value="${cloudhisto.error.email}" />
+		<!-- Debugging properties -->
+		<property name="debug_shutdown_histo" value="0" />
+
+		<!-- Setup tokens for templates -->
+		<filterset begintoken="@" endtoken="@" id="template_token_filterset"> 
+			<filter token="SSH_USER" value="${ssh_user}" />
+			<filter token="SENDGRID_USERNAME" value="${sendgrid_username}"/>
+			<filter token="SENDGRID_PASSWORD" value="${sendgrid_password}"/>
+			<filter token="JVM_OPTIONS" value="${jvm_options}"/>
+			<filter token="UNIX.RGS.DEPLOY.EAR.CLASSES" value="${unix.rgs.deploy.ear.classes}"/>
+			<filter token="UNIX.COMPILE.CLASSPATH" value="${unix.compile.classpath}"/>
+			<filter token="EMAIL_SCRIPT_NAME" value="${email_script_name}"/>
+			<filter token="EMAIL_TO_SUCCESSFUL" value="${email_to_successful}"/>
+			<filter token="EMAIL_TO_FAILED" value="${email_to_failed}"/>
+			<filter token="EMAIL_FROM" value="${email_from}"/>
+			<filter token="GAME" value="${game}"/>		
+			<filter token="INSTANCE_NAME" value="${instance_name}"/>
+			<filter token="UUID.CLEAN" value="${uuid.clean}"/>
+			<filter token="USER.NAME.LOWERCASE" value="${user.name.lowercase}"/>
+			<filter token="SOFTWARE.ID" value="${software.id}"/>
+			<filter token="GAME_NAME" value="${game_name}"/>
+			<filter token="DEPLOY_TYPE" value="${deploy_type}"/>
+			<filter token="HISTO_TYPE" value="${histo_type}"/>
+			<filter token="MACHINE_TYPE" value="${machine_type}"/>
+			<filter token="GCUTIL_SERVICE_VERSION" value="${gcutil_service_version}"/>
+			<filter token="GCUTIL_PROJECT" value="${gcutil_project}"/>
+			<filter token="GCE_ZONE" value="${gce_zone}"/>
+			<filter token="GCE_NETWORK" value="${gce_network}"/>
+			<filter token="GCE_IP" value="${gce_ip}"/>
+			<filter token="GCE_SCOPES" value="${gce_scopes}"/>
+
+			<filter token="GCE_PERSISTENT_BOOT_DISK" value="${gce_persistent_boot_disk}"/>
+			<filter token="GCE_LOCAL_STARTUP_SCRIPT_LOG" value="${gce_local_startup_script_log}"/>
+			<filter token="GCE_METADATA_SERVER" value="${gce_metadata_server}"/>
+			<filter token="GCE_IMAGE" value="${gce_image}"/>
+
+			<filter token="HTTP_PROCESSED_PATH" value="${http_processed_path}"/>
+			<!--filter token="HTTP_STARTUP_SCRIPT_LOG" value="${http_startup_script_log}"/ -->
+			<filter token="GS_ROOT_PATH" value="${gs_root_path}"/>
+			<filter token="GS_GTS_ZIP_PATH" value="${gs_gts_zip_path}"/>
+			<filter token="GS_DEPLOY_SCRIPT_PATH" value="${gs_deploy_script_path}"/>
+			<filter token="GS_STARTUP_SCRIPT_PATH" value="${gs_startup_script_path}"/>
+			<filter token="GS_PROCESSED_PATH" value="${gs_processed_path}"/>
+			<filter token="GS_PREPROCESSED_PATH" value="${gs_preprocessed_path}"/>
+			<!-- filter token="GS_STARTUP_SCRIPT_LOG" value="${gs_startup_script_log}"/ -->
+			<filter token="GTS_ZIP_FILENAME" value="${gts_zip_filename}"/>
+			<filter token="STARTUP_SCRIPT_NAME" value="${startup_script_name}"/>
+			<filter token="DEPLOY_SCRIPT_NAME" value="${deploy_script_name}"/>
+			<filter token="DEBUG_SHUTDOWN_HISTO" value="${debug_shutdown_histo}"/>		     
+			<filter token="METADATA_HISTO_UUID" value="${metadata_histo_uuid}"/>
+			<filter token="METADATA_HISTO_TYPE" value="${metadata_histo_type}"/>
+
+			<filter token="METADATA_HISTO_NODE_TYPE" value="${metadata_histo_node_type}"/>
+			<filter token="METADATA_HISTO_MODE" value="${metadata_histo_mode}"/>
+			<filter token="METADATA_HISTO_NODE_INSTANCES" value="${metadata_histo_node_instances}"/>
+			<filter token="METADATA_HISTO_BUILDTIME" value="${metadata_histo_buildtime}"/>
+			<filter token="METADATA_HISTO_PAYTABLE_ID" value="${metadata_histo_paytable_id}"/>
+			<filter token="METADATA_HISTO_USER" value="${metadata_histo_user}"/>
+			<filter token="METADATA_HISTO_GAME" value="${metadata_histo_game}"/>
+			<filter token="METADATA_HISTO_RUNS" value="${metadata_histo_runs}"/>
+			<filter token="METADATA_HISTO_THREADS" value="${metadata_histo_threads}"/>
+
+			<filter token="METADATA_HISTO_GTS_ZIP" value="${metadata_histo_gts_zip}"/>
+
+			<filter token="METADATA_HISTO_DEPLOY_SCRIPT" value="${metadata_histo_deploy_script}"/>
+			<filter token="METADATA_HISTO_STARTUP_SCRIPT" value="${metadata_histo_startup_script}"/>
+			<filter token="METADATA_HISTO_PREPROCESSED_PATH" value="${metadata_histo_preprocessed_path}"/>
+			<filter token="METADATA_HISTO_PROCESSED_PATH" value="${metadata_histo_processed_path}"/>
+			<filter token="METADATA_HISTO_INSTANCE_NAME" value="${metadata_histo_instance_name}"/>
+			<filter token="METADATA_STARTUP_SCRIPT" value="${metadata_startup_script}"/>
+			<filter token="METADATA_HISTO_HTTP_ROOT_PATH" value="${metadata_histo_http_root_path}"/>
+
+			<filter token="METADATA_HISTO_HTTP_GTS_ZIP_PATH" value="${metadata_histo_http_gts_zip_path}"/>
+			<filter token="METADATA_HISTO_HTTP_STARTUP_SCRIPT_PATH" value="${metadata_histo_http_startup_script_path}"/>
+			<filter token="METADATA_HISTO_HTTP_DEPLOY_SCRIPT_PATH" value="${metadata_histo_http_deploy_script_path}"/>
+
+			<filter token="METADATA_HISTO_HTTP_PREPROCESSED_PATH" value="${metadata_histo_http_preprocessed_path}"/>
+			<filter token="METADATA_HISTO_HTTP_PROCESSED_PATH" value="${metadata_histo_http_processed_path}"/>
+			<filter token="IGDK_HOME" value="/tmp"/>
+		</filterset>
+
+		<!-- dependency package for email script -->
+		<copy file="${templates.dir}/package.json.tmpl" tofile="${rgs.deploy.ear}/package.json" overwrite="true">
+			<filterset begintoken="@" endtoken="@">
+				<filterset refid="template_token_filterset"/>
+			</filterset>
+			<mapper type="glob" from="*.tmpl" to="*"/>
+			<filterchain>
+				<fixcrlf eol="unix" eof="remove" />
+			</filterchain>			
+		</copy>
+
+		<!-- generate results email script -->
+		<copy file="${templates.dir}/email.js.tmpl" tofile="${rgs.deploy.ear}/${email_script_name}" overwrite="true">
+			<filterset begintoken="@" endtoken="@">
+				<filterset refid="template_token_filterset"/>
+			</filterset>
+
+			<mapper type="glob" from="*.tmpl" to="*"/>
+			<filterchain>
+				<fixcrlf eol="unix" eof="remove" />
+			</filterchain>			
+		</copy>
+
+		<!-- Compress the GTS folder -->
+		<zip destfile="${tmp.build.home}/${gts_zip_filename}" basedir="${rgs.deploy.ear}" />
+
+		<!-- Create a deployment script. -->
+		<copy file="${templates.dir}/deploy.sh.tmpl" tofile="${tmp.build.home}/${deploy_script_name}" overwrite="true">
+			<filterset begintoken="@" endtoken="@">
+				<filterset refid="template_token_filterset"/>
+			</filterset>
+			<mapper type="glob" from="*.tmpl" to="*"/>
+			<filterchain>
+				<fixcrlf eol="unix" eof="remove" />
+			</filterchain>			
+		</copy>
+
+		<!-- Create a startup script. -->
+		<copy file="${templates.dir}/startup.sh.tmpl" tofile="${tmp.build.home}/${startup_script_name}" overwrite="true">
+			<filterset begintoken="@" endtoken="@">
+				<filterset refid="template_token_filterset"/>
+			</filterset>
+			<mapper type="glob" from="*.tmpl" to="*"/>
+			<filterchain>
+				<fixcrlf eol="unix" eof="remove" />
+			</filterchain>			
+		</copy>
+	</target>
+</project>

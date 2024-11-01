@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Init>
+	<PlayerInput>
+	
+	</PlayerInput>
+	<Outcome>
+	    <OutcomeDetail>
+		<OutcomeNumber>0</OutcomeNumber>
+		<Settled>0</Settled>
+		<Pending>0</Pending>
+		<Payout>0</Payout>
+		<Stage>Wager</Stage>
+		<ExecutionModel>Wager_Buy</ExecutionModel>
+		<NextStage>Wager</NextStage>
+		<Vigorish>0.0</Vigorish>
+	    </OutcomeDetail>
+	    <ResultData>
+	    	<JSONOutcome name="ODERevealData">{'revealData':null}</JSONOutcome>
+	    </ResultData>
+	</Outcome>
+</Init>
